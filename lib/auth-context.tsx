@@ -1,11 +1,18 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import { authClient } from "./auth-client";
 import {
-  authApi,
   clearStoredToken,
   getStoredToken,
   getStoredUser,
+  setStoredToken,
   setStoredUser,
   type AuthUser,
 } from "./api";
@@ -29,42 +36,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ─── Session Restore ─────────────────────────────────────────────────────────
   const refreshSession = useCallback(async () => {
-    // 1) If there's no token at all, user is not logged in
     const token = getStoredToken();
     if (!token) {
       setUser(null);
       return;
     }
 
-    // 2) Restore the cached user immediately (instant UI, no flicker)
+    // Instantly restore cached user (no network needed)
     const cachedUser = getStoredUser();
     if (cachedUser && cachedUser.role === "ADMIN") {
       setUser(cachedUser);
     }
 
-    // 3) Validate in the background — update or revoke as needed
+    // Background validation via Better Auth client
     try {
-      const freshUser = await authApi.getSession();
-      if (freshUser && freshUser.role === "ADMIN") {
-        setUser(freshUser);
-        setStoredUser(freshUser); // refresh the cache
-      } else if (freshUser) {
-        // Logged in but not an admin
+      const { data } = await authClient.getSession({
+        fetchOptions: {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      });
+
+      // Better Auth's client types don't include custom fields like 'role',
+      // but the backend returns them at runtime.
+      const userWithRole = data?.user as unknown as AuthUser | undefined;
+      if (userWithRole && userWithRole.role === "ADMIN") {
+        setUser(userWithRole);
+        setStoredUser(userWithRole);
+      } else if (data?.user) {
+        // Not an admin
         setUser(null);
         clearStoredToken();
       }
     } catch {
-      // If the API call fails (network error, 401, etc.), keep the cached
-      // user so the dashboard stays visible. The next real API call will
-      // catch an expired session and redirect then.
+      // Keep cached user on transient failures
       if (!cachedUser) {
-        // No cached user and API failed → genuinely not authenticated
         setUser(null);
         clearStoredToken();
       }
-      // If we DO have a cached user, just keep showing them.
-      // Their token might still be valid; a transient error shouldn't log them out.
     }
   }, []);
 
@@ -74,55 +84,113 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setIsLoading(false));
   }, [refreshSession]);
 
+  // ─── Sign In (Email + Password) ──────────────────────────────────────────────
   const signIn = async (email: string, password: string) => {
-    const result = await authApi.signIn({ email, password });
-    if (result.user.role !== "ADMIN") {
-      await authApi.signOut().catch(() => {});
+    const { data, error } = await authClient.signIn.email({
+      email,
+      password,
+    });
+
+    if (error) throw new Error(error.message || "Sign in failed.");
+    if (!data?.user) throw new Error("Sign in failed — no user returned.");
+
+    const authUser = data.user as unknown as AuthUser;
+    if (authUser.role !== "ADMIN") {
+      await authClient.signOut().catch(() => {});
+      clearStoredToken();
       throw new Error("Only administrators can access this panel.");
     }
-    setUser(result.user);
+
+    if (data.token) setStoredToken(data.token);
+    setStoredUser(authUser);
+    setUser(authUser);
   };
 
+  // ─── Sign Up (Email + Password) ──────────────────────────────────────────────
   const signUp = async (name: string, email: string, password: string) => {
-    const result = await authApi.signUp({ email, password, name });
-    if (result.user.role !== "ADMIN") {
-      await authApi.signOut().catch(() => {});
+    const { data, error } = await authClient.signUp.email({
+      email,
+      password,
+      name,
+    });
+
+    if (error) throw new Error(error.message || "Sign up failed.");
+    if (!data?.user) throw new Error("Sign up failed — no user returned.");
+
+    const authUser = data.user as unknown as AuthUser;
+    if (authUser.role !== "ADMIN") {
+      await authClient.signOut().catch(() => {});
+      clearStoredToken();
       throw new Error(
         "Account created. Please contact a system administrator to grant admin access."
       );
     }
-    setUser(result.user);
+
+    if (data.token) setStoredToken(data.token);
+    setStoredUser(authUser);
+    setUser(authUser);
   };
 
+  // ─── Sign Out ────────────────────────────────────────────────────────────────
   const signOut = async () => {
     try {
-      await authApi.signOut();
+      await authClient.signOut({
+        fetchOptions: {
+          headers: {
+            Authorization: `Bearer ${getStoredToken() || ""}`,
+          },
+        },
+      });
     } catch {
-      clearStoredToken();
+      // ignore
     }
+    clearStoredToken();
     setUser(null);
   };
 
+  // ─── Phone OTP ───────────────────────────────────────────────────────────────
   const sendOTP = async (phoneNumber: string) => {
-    await authApi.sendOTP(phoneNumber);
+    const { error } = await authClient.phoneNumber.sendOtp({
+      phoneNumber,
+    });
+    if (error) throw new Error(error.message || "Failed to send OTP.");
   };
 
   const verifyOTP = async (phoneNumber: string, code: string) => {
-    const result = await authApi.verifyOTP({ phoneNumber, code });
-    if (result.user.role !== "ADMIN") {
-      await authApi.signOut().catch(() => {});
+    const { data, error } = await authClient.phoneNumber.verify({
+      phoneNumber,
+      code,
+    });
+
+    if (error) throw new Error(error.message || "OTP verification failed.");
+    if (!data) throw new Error("Verification failed — no data returned.");
+
+    // The verify response includes token + user
+    const responseData = data as unknown as { token?: string; user?: AuthUser };
+
+    if (responseData.user && responseData.user.role !== "ADMIN") {
+      await authClient.signOut().catch(() => {});
+      clearStoredToken();
       throw new Error("Only administrators can access this panel.");
     }
-    setUser(result.user);
+
+    if (responseData.token) setStoredToken(responseData.token);
+    if (responseData.user) {
+      setStoredUser(responseData.user);
+      setUser(responseData.user);
+    }
   };
 
+  // ─── Google Social Sign In ───────────────────────────────────────────────────
   const socialSignIn = async (provider: "google") => {
-    const result = await authApi.socialSignIn({
+    const { data, error } = await authClient.signIn.social({
       provider,
       callbackURL: `${window.location.origin}/auth/callback`,
     });
-    if (result.url) {
-      window.location.href = result.url;
+
+    if (error) throw new Error(error.message || "Social sign in failed.");
+    if (data?.url) {
+      window.location.href = data.url;
     }
   };
 

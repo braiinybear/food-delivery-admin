@@ -18,13 +18,14 @@ export function proxy(request: NextRequest) {
   // Public paths that don't require authentication
   const publicPaths = ["/sign-in", "/sign-up", "/auth/callback"];
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
+  const isRootPath = pathname === "/";
 
-  // If user has a session cookie and tries to access auth pages, redirect to dashboard
-  if (sessionCookie && isPublicPath) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // Authenticated user on auth page OR root → send to dashboard
+  if (sessionCookie && (isPublicPath || isRootPath)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // If user doesn't have a session cookie and tries to access protected pages
+  // Unauthenticated user on a protected page → send to sign-in
   if (!sessionCookie && !isPublicPath) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }

@@ -1,31 +1,39 @@
+import axios, { AxiosRequestConfig } from "axios";
+
 /**
- * API client for communicating with the NestJS backend.
+ * API helpers for the admin panel.
  * 
- * Since the admin frontend and backend are
- * on different origins, session cookies set by Better Auth on the backend
- * domain are NOT visible to the admin app's proxy/middleware.
- * 
- * Solution: Store the Bearer token in a cookie (for proxy) and localStorage
- * (for the API client). User data is also cached in localStorage for instant
- * session restoration on refresh.
+ * Uses the Better Auth client for auth operations, with localStorage-based
+ * persistence for cross-origin support (Render HTTPS → localhost HTTP).
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 // ─── Token & Session Storage ───────────────────────────────────────────────────
+// Since cross-origin cookies won't work (different domains + HTTP/HTTPS mismatch),
+// we store the session token and user data in localStorage + a cookie for the proxy.
 
 const TOKEN_COOKIE_NAME = "admin_session_token";
 const TOKEN_STORAGE_KEY = "admin_session_token";
 const USER_STORAGE_KEY = "admin_user_data";
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+  image?: string;
+  role: string;
+  referralCode?: string;
+  createdAt: string;
+}
+
 /** Read token from localStorage (primary) or cookie (fallback) */
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    // Primary: localStorage
     const token = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (token) return token;
-    // Fallback: cookie
     const match = document.cookie.match(
       new RegExp(`(?:^|;\\s*)${TOKEN_COOKIE_NAME}=([^;]*)`)
     );
@@ -35,18 +43,14 @@ export function getStoredToken(): string | null {
   }
 }
 
-/** Store token in BOTH cookie (for proxy/middleware) and localStorage (for API) */
+/** Store token in BOTH cookie (for the proxy) and localStorage (reliable) */
 export function setStoredToken(token: string): void {
   if (typeof window === "undefined") return;
-  // Cookie: for the proxy to detect auth state on navigation
-  const maxAge = 7 * 24 * 60 * 60; // 7 days
+  const maxAge = 7 * 24 * 60 * 60;
   document.cookie = `${TOKEN_COOKIE_NAME}=${encodeURIComponent(token)}; path=/; max-age=${maxAge}; SameSite=Lax`;
-  // localStorage: reliable storage that survives page refresh
   try {
     localStorage.setItem(TOKEN_STORAGE_KEY, token);
-  } catch {
-    // localStorage might be full or disabled
-  }
+  } catch { /* ignore */ }
 }
 
 /** Clear token from both cookie and localStorage */
@@ -56,19 +60,15 @@ export function clearStoredToken(): void {
   try {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(USER_STORAGE_KEY);
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
 }
 
-/** Cache the user object in localStorage for instant restore on refresh */
+/** Cache user data in localStorage for instant restore on refresh */
 export function setStoredUser(user: AuthUser): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
 }
 
 /** Get cached user from localStorage */
@@ -83,11 +83,8 @@ export function getStoredUser(): AuthUser | null {
   }
 }
 
-// ─── API Client ────────────────────────────────────────────────────────────────
-
-interface FetchOptions extends RequestInit {
-  body?: string | FormData;
-}
+// ─── Authenticated API request helper ──────────────────────────────────────────
+// For non-auth API calls (admin endpoints), attach the Bearer token.
 
 class ApiError extends Error {
   status: number;
@@ -101,146 +98,49 @@ class ApiError extends Error {
   }
 }
 
-async function apiRequest<T>(
+export async function apiRequest<T>(
   endpoint: string,
-  options: FetchOptions = {}
+  options: AxiosRequestConfig = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Attach stored Bearer token if available
   const token = getStoredToken();
   const authHeaders: Record<string, string> = {};
   if (token) {
     authHeaders["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders,
-      ...options.headers,
-    },
-  });
+  // Debug — remove once confirmed working
+  console.debug("[apiRequest]", endpoint, "| token:", token ? "✓ present" : "✗ MISSING");
 
-  if (!response.ok) {
-    let errorData: unknown;
-    try {
-      errorData = await response.json();
-    } catch {
-      errorData = { message: response.statusText };
+  // Separate caller headers so spreading ...options below doesn't clobber Authorization
+  const { headers: callerHeaders, ...restOptions } = options;
+
+  try {
+    const response = await axios<T>({
+      url,
+      ...restOptions,
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders,
+        ...(callerHeaders as Record<string, string> | undefined),
+      },
+    });
+
+    return response.data;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const status = err.response?.status ?? 0;
+      const errorData: unknown = err.response?.data ?? { message: err.message };
+      throw new ApiError(
+        (errorData as { message?: string })?.message || "Request failed",
+        status,
+        errorData
+      );
     }
-    throw new ApiError(
-      (errorData as { message?: string })?.message || "Request failed",
-      response.status,
-      errorData
-    );
+    throw err;
   }
-
-  // Handle empty responses (like sign-out)
-  const text = await response.text();
-  if (!text) return {} as T;
-
-  return JSON.parse(text) as T;
 }
-
-// ─── Auth API ──────────────────────────────────────────────────────────────────
-
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  phoneNumber?: string;
-  image?: string;
-  role: string;
-  referralCode?: string;
-  createdAt: string;
-}
-
-export interface AuthSession {
-  token: string;
-  user: AuthUser;
-}
-
-export const authApi = {
-  signUp: async (data: {
-    email: string;
-    password: string;
-    name: string;
-  }): Promise<AuthSession> => {
-    const result = await apiRequest<AuthSession>("/api/auth/sign-up/email", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-    if (result.token) {
-      setStoredToken(result.token);
-      if (result.user) setStoredUser(result.user);
-    }
-    return result;
-  },
-
-  signIn: async (data: {
-    email: string;
-    password: string;
-  }): Promise<AuthSession> => {
-    const result = await apiRequest<AuthSession>("/api/auth/sign-in/email", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-    if (result.token) {
-      setStoredToken(result.token);
-      if (result.user) setStoredUser(result.user);
-    }
-    return result;
-  },
-
-  signOut: async (): Promise<{ success: boolean }> => {
-    try {
-      const result = await apiRequest<{ success: boolean }>("/api/auth/sign-out", {
-        method: "POST",
-      });
-      return result;
-    } finally {
-      // Always clear local state, even if the API call fails
-      clearStoredToken();
-    }
-  },
-
-  getSession: (): Promise<AuthUser> => {
-    return apiRequest("/api/auth/me");
-  },
-
-  sendOTP: (phoneNumber: string): Promise<{ success: boolean }> =>
-    apiRequest("/api/auth/phone-number/send-otp", {
-      method: "POST",
-      body: JSON.stringify({ phoneNumber }),
-    }),
-
-  verifyOTP: async (data: {
-    phoneNumber: string;
-    code: string;
-  }): Promise<AuthSession> => {
-    const result = await apiRequest<AuthSession>("/api/auth/phone-number/verify", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-    if (result.token) {
-      setStoredToken(result.token);
-      if (result.user) setStoredUser(result.user);
-    }
-    return result;
-  },
-
-  socialSignIn: (data: {
-    provider: "google";
-    callbackURL?: string;
-  }): Promise<{ url: string; redirect: boolean }> =>
-    apiRequest("/api/auth/sign-in/social", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-};
 
 export { ApiError };
-export default apiRequest;
