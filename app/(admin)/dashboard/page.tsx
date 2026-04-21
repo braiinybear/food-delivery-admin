@@ -203,7 +203,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-[calc(100vh-theme(spacing.24))] flex flex-col space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
@@ -211,18 +211,24 @@ export default function DashboardPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="admin-stats" className="w-full">
-        <TabsList className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-          <TabsTrigger value="admin-stats" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
+      <Tabs defaultValue="admin-stats" className="w-full flex-1 flex flex-col">
+        <TabsList className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full p-1 rounded-xl">
+          <TabsTrigger 
+            value="admin-stats" 
+            className="flex-1 rounded-lg px-6 py-2.5 text-sm font-semibold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-sm"
+          >
             Admin Stats
           </TabsTrigger>
-          <TabsTrigger value="recent-orders" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
+          <TabsTrigger 
+            value="recent-orders" 
+            className="flex-1 rounded-lg px-6 py-2.5 text-sm font-semibold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-sm"
+          >
             Recent Orders
           </TabsTrigger>
         </TabsList>
 
         {/* Admin Stats Tab */}
-        <TabsContent value="admin-stats" className="space-y-6 mt-6">
+        <TabsContent value="admin-stats" className="space-y-6 mt-6 flex-1">
           {/* Loading State */}
           {statsLoading ? (
             <>
@@ -246,44 +252,44 @@ export default function DashboardPage() {
           ) : stats ? (
             <>
               {/* Revenue Card */}
-              <div className="bg-linear-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 text-white shadow-lg">
+              <div className="bg-linear-to-br from-indigo-600 to-indigo-800 rounded-2xl p-8 text-white shadow-lg flex flex-col justify-center min-h-[200px]">
                 <p className="text-indigo-200 text-sm font-medium uppercase tracking-wide mb-2">Total Revenue</p>
-                <h2 className="text-4xl font-bold mb-4">{formatCurrency(stats.totalRevenue || 0)}</h2>
+                <h2 className="text-5xl font-bold mb-4">{formatCurrency(stats.totalRevenue || 0)}</h2>
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
                 {/* Total Users Card */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-center">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                      <Users size={24} className="text-blue-600 dark:text-blue-400" />
+                    <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                      <Users size={28} className="text-blue-600 dark:text-blue-400" />
                     </div>
                   </div>
                   <p className="text-slate-600 dark:text-slate-400 text-sm font-medium uppercase tracking-wide mb-1">Total Users</p>
-                  <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{stats.totalUsers || 0}</h3>
+                  <h3 className="text-4xl font-bold text-slate-900 dark:text-white">{stats.totalUsers || 0}</h3>
                 </div>
 
                 {/* Restaurants Card */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-center">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-                      <UtensilsCrossed size={24} className="text-orange-600 dark:text-orange-400" />
+                    <div className="w-14 h-14 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
+                      <UtensilsCrossed size={28} className="text-orange-600 dark:text-orange-400" />
                     </div>
                   </div>
                   <p className="text-slate-600 dark:text-slate-400 text-sm font-medium uppercase tracking-wide mb-1">Restaurants</p>
-                  <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{stats.totalRestaurants || 0}</h3>
+                  <h3 className="text-4xl font-bold text-slate-900 dark:text-white">{stats.totalRestaurants || 0}</h3>
                 </div>
 
                 {/* Total Orders Card */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-center">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                      <ShoppingBag size={24} className="text-green-600 dark:text-green-400" />
+                    <div className="w-14 h-14 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                      <ShoppingBag size={28} className="text-green-600 dark:text-green-400" />
                     </div>
                   </div>
                   <p className="text-slate-600 dark:text-slate-400 text-sm font-medium uppercase tracking-wide mb-1">Total Orders</p>
-                  <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{stats.totalOrders || 0}</h3>
+                  <h3 className="text-4xl font-bold text-slate-900 dark:text-white">{stats.totalOrders || 0}</h3>
                 </div>
               </div>
 
