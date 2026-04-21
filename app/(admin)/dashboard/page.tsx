@@ -203,7 +203,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
@@ -344,42 +344,42 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Status</label>
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                  <Filter size={16} className="text-slate-400" />
+                  <Filter size={16} className="text-slate-400 dark:text-slate-500" />
                   <select
                     value={filterStatus}
                     onChange={(e) => {
                       setFilterStatus(e.target.value)
                       setCurrentPage(1)
                     }}
-                    className="bg-transparent text-slate-900 dark:text-white text-sm font-medium focus:outline-none min-w-[120px]"
+                    className="bg-transparent text-slate-900 dark:text-white text-sm font-medium focus:outline-none min-w-[120px] dark:[color-scheme:dark]"
                   >
-                    <option value="ALL">All Orders</option>
-                    <option value="PLACED">Order Placed</option>
-                    <option value="ACCEPTED">Accepted</option>
-                    <option value="PICKED_UP">Picked Up</option>
-                    <option value="DELIVERED">Delivered</option>
-                    <option value="CANCELLED">Cancelled</option>
+                    <option value="ALL" className="text-slate-900 dark:text-slate-900">All Orders</option>
+                    <option value="PLACED" className="text-slate-900 dark:text-slate-900">Order Placed</option>
+                    <option value="ACCEPTED" className="text-slate-900 dark:text-slate-900">Accepted</option>
+                    <option value="PICKED_UP" className="text-slate-900 dark:text-slate-900">Picked Up</option>
+                    <option value="DELIVERED" className="text-slate-900 dark:text-slate-900">Delivered</option>
+                    <option value="CANCELLED" className="text-slate-900 dark:text-slate-900">Cancelled</option>
                   </select>
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">From Date</label>
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">From Date</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 dark:[color-scheme:dark]"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">To Date</label>
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">To Date</label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 dark:[color-scheme:dark]"
                 />
               </div>
 
