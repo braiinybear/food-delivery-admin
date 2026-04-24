@@ -65,7 +65,7 @@ export default function DashboardPage() {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
     }).format(value)
   }
 
