@@ -19,15 +19,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Initialize theme on client-side only (useLayoutEffect runs before paint) ──
   useLayoutEffect(() => {
-    // Get initial theme from localStorage or system preference
+    // Only apply dark mode if user has explicitly set it — never auto-detect OS dark mode
     const storedTheme = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const isDark = storedTheme === "dark" || (storedTheme === null && prefersDark)
+    const isDark = storedTheme === "dark"
 
     // Apply theme to DOM immediately
     if (isDark) {
       document.documentElement.classList.add("dark")
-      localStorage.setItem("theme", "dark")
     } else {
       document.documentElement.classList.remove("dark")
       localStorage.setItem("theme", "light")

@@ -29,14 +29,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="h-full antialiased font-sans">
-        <ThemeProvider>
-          <QueryProvider>
-            <AuthProvider>
+
+        <QueryProvider>
+          <AuthProvider>
+            <ThemeProvider>
               <Toaster position="top-right" richColors />
               {children}
-            </AuthProvider>
-          </QueryProvider>
-        </ThemeProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryProvider>
+
       </body>
     </html>
   );
