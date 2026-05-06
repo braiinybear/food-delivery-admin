@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSignIn } from "@/hooks/useAuth";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -10,10 +10,12 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { mutate: signIn, isPending, error } = useSignIn();
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const { signIn } = useAuth();
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("🔐 Login attempt with:", { email, password: "***" });
     
@@ -22,18 +24,19 @@ export default function LoginPage() {
       return;
     }
 
-    signIn(
-      { email, password },
-      {
-        onSuccess: (data: any) => {
-          console.log("✅ Login successful:", data);
-          router.push("/");
-        },
-        onError: (err: any) => {
-          console.error("❌ Login error:", err);
-        },
-      }
-    );
+    setIsPending(true);
+    setError(null);
+
+    try {
+      await signIn(email, password);
+      console.log("✅ Login successful");
+      router.push("/");
+    } catch (err: any) {
+      console.error("❌ Login error:", err);
+      setError(err.message || "Login failed. Please check your credentials.");
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -64,12 +67,7 @@ export default function LoginPage() {
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-700 text-sm font-medium">
-                {(error as any)?.response?.data?.message || 
-                 (error as any)?.message || 
-                 "Login failed. Please check your credentials."}
-              </p>
-              <p className="text-red-600 text-xs mt-1">
-                {typeof error === 'string' ? error : ''}
+                {error}
               </p>
             </div>
           )}

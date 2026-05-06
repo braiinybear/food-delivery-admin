@@ -1,4 +1,4 @@
-import { RequestStatus } from "@prisma/client";
+export type RequestStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface WithdrawalRequest {
   id: string;
