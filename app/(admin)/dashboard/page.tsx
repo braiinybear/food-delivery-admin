@@ -101,7 +101,7 @@ export default function DashboardPage() {
   const exportToExcel = () => {
     const exportData = filteredOrders.map((order: AdminOrder) => ({
       "Order ID": order.id,
-      "Customer": order.customer?.name || "N/A",
+      "Customer": order.customerAddress?.receiverName || order.customer?.name || "N/A",
       "Email": order.customer?.email || "N/A",
       "Restaurant": order.restaurant?.name || "N/A",
       "Status": getStatusLabel(order.status),
@@ -185,7 +185,7 @@ export default function DashboardPage() {
               ${filteredOrders.map((order: AdminOrder) => `
                 <tr>
                   <td>${order.id}</td>
-                  <td>${order.customer?.name || "N/A"}</td>
+                  <td>${order.customerAddress?.receiverName || order.customer?.name || "N/A"}</td>
                   <td>${order.restaurant?.name || "N/A"}</td>
                   <td><span class="status status-${order.status.toLowerCase().replace('_', '')}">${getStatusLabel(order.status)}</span></td>
                   <td>${formatCurrency(order.totalAmount || 0)}</td>
@@ -458,7 +458,7 @@ export default function DashboardPage() {
                           className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors cursor-pointer"
                         >
                           <TableCell className="text-sm text-slate-900 dark:text-slate-300 font-medium">#{order.id}</TableCell>
-                          <TableCell className="text-sm text-slate-600 dark:text-slate-400">{order.customer?.name || "N/A"}</TableCell>
+                          <TableCell className="text-sm text-slate-600 dark:text-slate-400">{order.customerAddress?.receiverName || order.customer?.name || "N/A"}</TableCell>
                           <TableCell className="text-sm text-slate-600 dark:text-slate-400">{order.restaurant?.name || "N/A"}</TableCell>
                           <TableCell className="text-sm text-slate-900 dark:text-slate-300 font-semibold">{formatCurrency(order.totalAmount || 0)}</TableCell>
                           <TableCell className="text-sm">

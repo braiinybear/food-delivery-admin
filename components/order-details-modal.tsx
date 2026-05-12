@@ -92,7 +92,8 @@ export function OrderDetailsModal({
               <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
                 <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-2.5 uppercase tracking-widest">Customer</h3>
                 <div className="space-y-1">
-                  <p className="text-sm text-slate-900 dark:text-white font-semibold truncate">{order.customer?.name || "N/A"}</p>
+                  <p className="text-sm text-slate-900 dark:text-white font-semibold truncate">{order.customerAddress?.receiverName || order.customer?.name || "N/A"}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{order.customerAddress?.receiverPhone || order.customer?.phoneNumber || "N/A"}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{order.customer?.email || "N/A"}</p>
                 </div>
               </div>

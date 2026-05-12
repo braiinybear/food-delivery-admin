@@ -31,6 +31,7 @@ export interface OrderCustomer {
   id: string;
   name: string;
   email: string;
+  phoneNumber?: string;
 }
 
 // 🍽️ Restaurant
@@ -79,6 +80,14 @@ export interface AdminOrder {
   customer: OrderCustomer;
   restaurant: OrderRestaurant;
   driver: OrderDriver | null;
+  customerAddress?: {
+    addressLine: string;
+    landmark: string | null;
+    receiverName: string | null;
+    receiverPhone: string | null;
+    lat: number;
+    lng: number;
+  };
 }
 
 // 🔹 Response
