@@ -28,6 +28,12 @@ export interface AuthUser {
   createdAt: string;
 }
 
+/** Check if the session cookie exists (used to sync with proxy) */
+export function hasSessionCookie(): boolean {
+  if (typeof window === "undefined") return false;
+  return document.cookie.includes(`${TOKEN_COOKIE_NAME}=`);
+}
+
 /** Read token from localStorage (primary) or cookie (fallback) */
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;

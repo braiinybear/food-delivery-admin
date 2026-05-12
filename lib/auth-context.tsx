@@ -12,6 +12,7 @@ import {
   clearStoredToken,
   getStoredToken,
   getStoredUser,
+  hasSessionCookie,
   setStoredToken,
   setStoredUser,
   type AuthUser,
@@ -39,7 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ─── Session Restore ─────────────────────────────────────────────────────────
   const refreshSession = useCallback(async () => {
     const token = getStoredToken();
-    if (!token) {
+    const hasCookie = hasSessionCookie();
+
+    // If no token, or if we have a token but the cookie is gone (sync with proxy)
+    if (!token || !hasCookie) {
+      if (token && !hasCookie) {
+        console.warn("Session cookie missing, clearing stale localStorage session.");
+        clearStoredToken();
+      }
       setUser(null);
       return;
     }
